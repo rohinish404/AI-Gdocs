@@ -1,1 +1,1 @@
-Google docs clone with AI features enabled
+Google docs clone with Cursor like chat and ai features
