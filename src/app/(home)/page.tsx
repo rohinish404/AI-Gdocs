@@ -1,5 +1,6 @@
 import { Navbar } from "./navbar";
 import Link from "next/link";
+import { TemplatesGallery } from "./templates-gallery";
 export default function Home() {
   return (
     <div className="min-h-screen flex flex-col">
@@ -7,10 +8,7 @@ export default function Home() {
         <Navbar />
       </div>
       <div className="mt-16">
-        Click
-        <Link href="/documents/123">
-          <span></span>
-        </Link>
+        <TemplatesGallery /> 
       </div>
     </div>
   );
