@@ -24,7 +24,10 @@ import { FontSizeExtension } from "@/extensions/font-size";
 
 import { Ruler } from "./ruler";
 
-export const Editor = () => {
+interface EditorProps {
+  initialContent?: string | undefined;
+}
+export const Editor = ({ initialContent }:EditorProps) => {
   const { setEditor } = useEditorStore();
 
   const editor = useEditor({
@@ -87,22 +90,7 @@ export const Editor = () => {
         nested: true,
       }),
     ],
-    content: `
-            <table>
-              <tbody>
-                <tr>
-                  <th>Name</th>
-                  <th colspan="3">Description</th>
-                </tr>
-                <tr>
-                  <td>Cyndi Lauper</td>
-                  <td>Singer</td>
-                  <td>Songwriter</td>
-                  <td>Actress</td>
-                </tr>
-              </tbody>
-            </table>
-          `,
+    content: initialContent,
   });
   return (
     <div className="size-full overflow-x-auto bg-[#F9FAFD] px-4 print:p-0 print:bg-white print:pverflow-visible">
