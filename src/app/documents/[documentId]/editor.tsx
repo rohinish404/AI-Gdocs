@@ -56,9 +56,9 @@ export const Editor = ({ initialContent }: EditorProps) => {
     },
     editorProps: {
       attributes: {
-        style: `padding-left:${LEFT_MARGIN_DEFAULT}; padding-right:${RIGHT_MARGIN_DEFAULT};`,
+        style: `padding-left:${LEFT_MARGIN_DEFAULT}px; padding-right:${RIGHT_MARGIN_DEFAULT}px;`,
         class:
-          "focus:outline-none print:border-0 bg-white border-[#C7C7C7] flex flex-col min-h-[1054px] w-[816px] pt-10 pr-14 pb-10 cursor-text",
+          "focus:outline-none print:border-0 bg-white dark:bg-[#1f1f1f] border-border flex flex-col min-h-[1054px] w-[816px] pt-10 pr-14 pb-10 cursor-text",
       },
     },
     extensions: [
@@ -94,7 +94,7 @@ export const Editor = ({ initialContent }: EditorProps) => {
     content: initialContent,
   });
   return (
-    <div className="size-full overflow-x-auto bg-[#F9FAFD] px-4 print:p-0 print:bg-white print:pverflow-visible">
+    <div className="size-full overflow-x-auto bg-secondary px-4 print:p-0 print:bg-white print:pverflow-visible">
       <Ruler />
       <div className="min-w-max justify-center w-[816px] py-4 print:py-0 mx-auto print:w-full print:min-w-0">
         <EditorContent editor={editor} />;

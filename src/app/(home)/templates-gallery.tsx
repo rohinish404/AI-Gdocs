@@ -1,13 +1,13 @@
-"use client"
+"use client";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
-import { 
+import {
   Carousel,
   CarouselContent,
   CarouselItem,
-  CarouselNext, 
+  CarouselNext,
   CarouselPrevious,
-} from "@/components/ui/carousel"
+} from "@/components/ui/carousel";
 import { templates } from "@/constants/templates";
 import { useRouter } from "next/navigation";
 import { useMutation } from "convex/react";
@@ -16,52 +16,55 @@ import { api } from "../../../convex/_generated/api";
 export const TemplatesGallery = () => {
   const router = useRouter();
   const create = useMutation(api.documents.create);
-  
+
   const [isCreating, setIsCreating] = useState(false);
-  
+
   const onTemplateClick = (title: string, initialContent: string) => {
     setIsCreating(true);
-    create({title, initialContent})
-    .then((documentId)=>{
-        router.push(`/documents/${documentId}`)
+    create({ title, initialContent })
+      .then((documentId) => {
+        router.push(`/documents/${documentId}`);
       })
-    .finally(()=> {
+      .finally(() => {
         setIsCreating(false);
-      })
+      });
   };
 
   return (
-    <div className="bg=[#F1F3F4]">
+    <div className="bg-muted/50">
       <div className="max-w-screen-xl mx-auto px-16 py-6 flex flex-col gap-y-4">
-          <h3 className="font-medium">Start a new document</h3>
-          <Carousel>
+        <h3 className="font-medium">Start a new document</h3>
+        <Carousel>
           <CarouselContent className="-ml-4">
             {templates.map((template) => (
-            <CarouselItem
+              <CarouselItem
                 key={template.id}
-                className="basis-1/2 sm:basis-1/4 md:basis-1/4 lg:basis-1/5 xl:basis-1/6 
+                className="basis-1/2 sm:basis-1/4 md:basis-1/4 lg:basis-1/5 xl:basis-1/6
                 2xl:basis-[14.285714%] gap-y-4"
               >
                 <div
-                className={cn(
+                  className={cn(
                     "aspect-[3/4] flex flex-col gap-y-2.5",
-                      isCreating && "pointer-events-none opacity-50"
+                    isCreating && "pointer-events-none opacity-50",
                   )}
                 >
                   <button
-                  disabled={isCreating}
-                  onClick={()=> onTemplateClick(template.label, template.initialContent)}
-                  style={{
+                    disabled={isCreating}
+                    onClick={() =>
+                      onTemplateClick(template.label, template.initialContent)
+                    }
+                    style={{
                       backgroundImage: `url(${template.imageUrl})`,
                       backgroundSize: "cover",
                       backgroundPosition: "center",
                       backgroundRepeat: "no-repeat",
-                  }}
-                  className="size-full hover:border-blue-500 rounded-sm border hover:bg-blue-50 
+                    }}
+                    className="size-full hover:border-blue-500 rounded-sm border hover:bg-blue-50
                     transition flex flex-col items-center justify-center gap-y-4 bg-white"
                   />
-                    <p className="text-sm font-medium truncate">{template.label}</p>
-
+                  <p className="text-sm font-medium truncate">
+                    {template.label}
+                  </p>
                 </div>
               </CarouselItem>
             ))}
@@ -71,5 +74,5 @@ export const TemplatesGallery = () => {
         </Carousel>
       </div>
     </div>
-  )
-}
+  );
+};

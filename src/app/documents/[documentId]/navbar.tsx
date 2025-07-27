@@ -43,6 +43,8 @@ import { toast } from "sonner";
 
 import { RenameDialog } from "@/components/rename-dialog";
 import { RemoveDialog } from "@/components/remove-dialog";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { UserButton } from "@clerk/nextjs";
 
 interface NavbarProps {
   data: Doc<"documents">;
@@ -108,7 +110,7 @@ export const Navbar = ({ data }: NavbarProps) => {
     onDownload(blob, `${data.title}.txt`);
   };
   return (
-    <nav className="flex justify-between">
+    <nav className="flex justify-between items-center">
       <div className="flex gap-2 items-center">
         <Link href="/">
           <Image src="/logo.svg" alt="Logo" width={36} height={36} />
@@ -285,6 +287,10 @@ export const Navbar = ({ data }: NavbarProps) => {
             </Menubar>
           </div>
         </div>
+      </div>
+      <div className="flex items-center gap-x-2">
+        <ThemeToggle />
+        <UserButton />
       </div>
     </nav>
   );
