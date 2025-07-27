@@ -18,8 +18,13 @@ import Highlight from "@tiptap/extension-highlight";
 import Link from "@tiptap/extension-link";
 import TextAlign from "@tiptap/extension-text-align";
 import { LineHeightExtension } from "@/extensions/line-height";
+import { BubbleMenu } from "@tiptap/react";
+
+import { Button } from "@/components/ui/button";
+import { MessageSquareIcon } from "lucide-react";
 
 import { useEditorStore } from "@/store/use-editor-store";
+import { useAiSidebarStore } from "@/store/use-aisidebar-store";
 import { FontSizeExtension } from "@/extensions/font-size";
 
 import { Ruler } from "./ruler";
@@ -30,6 +35,7 @@ interface EditorProps {
 }
 export const Editor = ({ initialContent }: EditorProps) => {
   const { setEditor } = useEditorStore();
+  const { open: openAiSidebar } = useAiSidebarStore();
 
   const editor = useEditor({
     immediatelyRender: false,
@@ -93,11 +99,40 @@ export const Editor = ({ initialContent }: EditorProps) => {
     ],
     content: initialContent,
   });
+
+  const handleAiButtonClick = () => {
+    if (!editor) return;
+    const { from, to } = editor.state.selection;
+    const text = editor.state.doc.textBetween(from, to, " ");
+    openAiSidebar(text, { from, to });
+  };
+
   return (
     <div className="size-full overflow-x-auto bg-secondary px-4 print:p-0 print:bg-white print:pverflow-visible">
       <Ruler />
       <div className="min-w-max justify-center w-[816px] py-4 print:py-0 mx-auto print:w-full print:min-w-0">
-        <EditorContent editor={editor} />;
+        {editor && (
+          <BubbleMenu
+            editor={editor}
+            tippyOptions={{ duration: 100 }}
+            shouldShow={({ state }) => {
+              const { from, to } = state.selection;
+              const isTextSelected = from !== to;
+              return isTextSelected && !useAiSidebarStore.getState().isOpen;
+            }}
+          >
+            <Button
+              onClick={handleAiButtonClick}
+              variant="ghost"
+              size="sm"
+              className="bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground gap-x-2"
+            >
+              <MessageSquareIcon className="size-4" />
+              Chat
+            </Button>
+          </BubbleMenu>
+        )}
+        <EditorContent editor={editor} />
       </div>
     </div>
   );

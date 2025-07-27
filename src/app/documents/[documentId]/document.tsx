@@ -1,3 +1,4 @@
+// file: src/app/documents/[documentId]/document.tsx
 "use client";
 
 import { Preloaded, usePreloadedQuery } from "convex/react";
@@ -5,6 +6,7 @@ import { Editor } from "./editor";
 import { Navbar } from "./navbar";
 import { Toolbar } from "./toolbar";
 import { api } from "../../../../convex/_generated/api";
+import { AiSidebar } from "./ai-sidebar";
 
 interface DocumentProps {
   preloadedDocument: Preloaded<typeof api.documents.getById>;
@@ -14,6 +16,7 @@ export const Document = ({ preloadedDocument }: DocumentProps) => {
 
   return (
     <div className="min-h-screen bg-secondary">
+      <AiSidebar />
       <div className="flex flex-col px-4 pt-2 gap-y-2 fixed top-0 left-0 right-0 z-10 bg-secondary print:hidden">
         <Navbar data={document} />
         <Toolbar />
