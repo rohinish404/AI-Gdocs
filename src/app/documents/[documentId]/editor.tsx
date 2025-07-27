@@ -23,11 +23,12 @@ import { useEditorStore } from "@/store/use-editor-store";
 import { FontSizeExtension } from "@/extensions/font-size";
 
 import { Ruler } from "./ruler";
+import { LEFT_MARGIN_DEFAULT, RIGHT_MARGIN_DEFAULT } from "@/constants/margins";
 
 interface EditorProps {
   initialContent?: string | undefined;
 }
-export const Editor = ({ initialContent }:EditorProps) => {
+export const Editor = ({ initialContent }: EditorProps) => {
   const { setEditor } = useEditorStore();
 
   const editor = useEditor({
@@ -55,7 +56,7 @@ export const Editor = ({ initialContent }:EditorProps) => {
     },
     editorProps: {
       attributes: {
-        style: "padding-left:56px; padding-right:56px;",
+        style: `padding-left:${LEFT_MARGIN_DEFAULT}; padding-right:${RIGHT_MARGIN_DEFAULT};`,
         class:
           "focus:outline-none print:border-0 bg-white border-[#C7C7C7] flex flex-col min-h-[1054px] w-[816px] pt-10 pr-14 pb-10 cursor-text",
       },
