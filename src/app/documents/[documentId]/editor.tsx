@@ -19,6 +19,7 @@ import Link from "@tiptap/extension-link";
 import TextAlign from "@tiptap/extension-text-align";
 import { LineHeightExtension } from "@/extensions/line-height";
 import { BubbleMenu } from "@tiptap/react";
+import { DOMSerializer } from "prosemirror-model";
 
 import { Button } from "@/components/ui/button";
 import { MessageSquareIcon } from "lucide-react";
@@ -103,8 +104,15 @@ export const Editor = ({ initialContent }: EditorProps) => {
   const handleAiButtonClick = () => {
     if (!editor) return;
     const { from, to } = editor.state.selection;
-    const text = editor.state.doc.textBetween(from, to, " ");
-    openAiSidebar(text, { from, to });
+    const slice = editor.state.doc.slice(from, to);
+
+    const serializer = DOMSerializer.fromSchema(editor.schema);
+    const tempDiv = document.createElement("div");
+    tempDiv.appendChild(serializer.serializeFragment(slice.content));
+
+    const htmlContent = tempDiv.innerHTML;
+
+    openAiSidebar(htmlContent, { from, to });
   };
 
   return (

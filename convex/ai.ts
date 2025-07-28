@@ -10,32 +10,70 @@ const openai = new OpenAI({
 
 export const generate = action({
   args: {
-    contextText: v.string(),
     prompt: v.string(),
-    // We'll keep this simple for now, but you can pass the model from the frontend
+    contextText: v.string(), // This will now be HTML
   },
-  handler: async (ctx, args) => {
-    const user = await ctx.auth.getUserIdentity();
-    if (!user) {
-      throw new Error("Not authenticated");
-    }
+  handler: async (_ctx, { prompt, contextText }) => {
+    const userMessage = `
+User Prompt: "${prompt}"
+
+Context (HTML):
+\`\`\`html
+${contextText}
+\`\`\`
+`;
+
+    const systemMessage = `You are an expert writing assistant. Your task is to process the user's prompt based on the provided HTML context.
+
+You MUST follow these rules:
+1.  Analyze the user's prompt and the HTML context.
+2.  Generate a response that fulfills the user's request, maintaining the original HTML structure and styling as much as possible.
+3.  Your final output MUST be a single, valid JSON object. Do not add any text before or after the JSON object.
+4.  The JSON object must have exactly two keys:
+    -   "content": A string containing the new, modified, or generated HTML that should replace the original selection in the document.
+    -   "explanation": A string containing a brief explanation of the changes you made or the reasoning behind your response. This explanation will be shown to the user in a separate panel and will NOT be inserted into the document.
+
+Example:
+If the user prompt is "make this bold" and the context is "<p>Hello World</p>", your response should be:
+{
+  "content": "<p><strong>Hello World</strong></p>",
+  "explanation": "I have wrapped the text 'Hello World' in a 'strong' tag to make it bold, as requested."
+}
+`;
 
     const response = await openai.chat.completions.create({
       model: "moonshotai/kimi-k2-instruct",
+      response_format: { type: "json_object" }, // Use JSON mode
       messages: [
         {
           role: "system",
-          content: `You are a writing assistant. A user has selected the following text from their document: "${args.contextText}". Please follow the user's instructions to modify this text.`,
+          content: systemMessage,
         },
         {
           role: "user",
-          content: args.prompt,
+          content: userMessage,
         },
       ],
     });
 
-    const newContent = response.choices[0].message.content;
+    const responseContent = response.choices[0].message.content;
 
-    return newContent;
+    if (!responseContent) {
+      throw new Error("No response from AI");
+    }
+
+    try {
+      const parsed = JSON.parse(responseContent);
+      if (
+        typeof parsed.content !== "string" ||
+        typeof parsed.explanation !== "string"
+      ) {
+        throw new Error("AI response is not in the expected format.");
+      }
+      return parsed; // Return the parsed object
+    } catch (e) {
+      console.error("Failed to parse AI response:", e);
+      throw new Error("AI returned invalid JSON.");
+    }
   },
 });

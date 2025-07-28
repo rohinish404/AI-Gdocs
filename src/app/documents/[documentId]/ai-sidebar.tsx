@@ -23,12 +23,14 @@ export const AiSidebar = () => {
   const generate = useAction(api.ai.generate);
 
   const [prompt, setPrompt] = useState("");
-  const [response, setResponse] = useState("");
+  const [suggestionContent, setSuggestionContent] = useState("");
+  const [explanation, setExplanation] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
   const handleClose = () => {
     setPrompt("");
-    setResponse("");
+    setSuggestionContent("");
+    setExplanation("");
     close();
   };
 
@@ -39,7 +41,8 @@ export const AiSidebar = () => {
     }
 
     setIsLoading(true);
-    setResponse("");
+    setSuggestionContent("");
+    setExplanation("");
 
     try {
       const result = await generate({
@@ -47,32 +50,41 @@ export const AiSidebar = () => {
         contextText: contextText || "",
       });
 
-      if (result && typeof result === "string" && result.trim()) {
-        setResponse(result.trim());
+      if (result && result.content && result.explanation) {
+        setSuggestionContent(result.content);
+        setExplanation(result.explanation);
       } else {
         toast.error("Failed to get a valid response from AI.");
       }
     } catch (error) {
       console.error("AI generation error:", error);
-      toast.error("An error occurred while generating content.");
+      toast.error(
+        "An error occurred while generating content. See console for details.",
+      );
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleApply = () => {
-    if (!response || !editor) {
-      toast.error("No response to apply or editor not available.");
+    if (!suggestionContent || !editor) {
+      toast.error("No suggestion to apply or editor not available.");
       return;
     }
 
     try {
       if (selectionRange) {
-        // Replace selected content
-        editor.chain().focus().insertContentAt(selectionRange, response).run();
+        editor
+          .chain()
+          .focus()
+          .insertContentAt(selectionRange, suggestionContent, {
+            parseOptions: {
+              preserveWhitespace: false,
+            },
+          })
+          .run();
       } else {
-        // Insert at current cursor position
-        editor.chain().focus().insertContent(response).run();
+        editor.chain().focus().insertContent(suggestionContent).run();
       }
 
       toast.success("AI suggestion applied successfully!");
@@ -94,21 +106,23 @@ export const AiSidebar = () => {
     <Sheet open={isOpen} onOpenChange={handleClose}>
       <SheetContent
         side="right"
-        className="w-[400px] sm:w-[540px] p-0 flex flex-col"
+        className="w-[400px] sm:w-[540px] p-0 flex flex-col h-full"
       >
-        <SheetHeader className="p-4 border-b">
+        <SheetHeader className="p-4 border-b flex-shrink-0">
           <SheetTitle className="flex items-center gap-x-2">
             <SparklesIcon className="size-5 text-primary" />
             AI Assistant
           </SheetTitle>
         </SheetHeader>
 
-        <ScrollArea className="flex-1">
+        <ScrollArea className="flex-1 h-0">
           <div className="p-4 space-y-4">
             {contextText && (
               <div>
-                <h3 className="text-sm font-semibold mb-2">Selected Context</h3>
-                <div className="text-sm text-muted-foreground bg-muted p-3 rounded-md border max-h-48 overflow-y-auto whitespace-pre-wrap">
+                <h3 className="text-sm font-semibold mb-2">
+                  Selected Context (HTML)
+                </h3>
+                <div className="text-sm text-muted-foreground bg-muted p-3 rounded-md border max-h-48 overflow-y-auto whitespace-pre-wrap font-mono text-xs">
                   {contextText}
                 </div>
               </div>
@@ -138,24 +152,38 @@ export const AiSidebar = () => {
               {isLoading ? "Generating..." : "Generate"}
             </Button>
 
-            {response && (
-              <>
-                <Separator />
-                <div>
-                  <h3 className="text-sm font-semibold mb-2">AI Suggestion</h3>
-                  <div className="text-sm bg-muted p-3 rounded-md border max-h-64 overflow-y-auto whitespace-pre-wrap">
-                    {response}
-                  </div>
+            {(suggestionContent || explanation) && <Separator />}
+
+            {explanation && (
+              <div>
+                <h3 className="text-sm font-semibold mb-2">Explanation</h3>
+                <div className="text-sm bg-muted/50 p-3 rounded-md border prose prose-sm dark:prose-invert max-w-none">
+                  <p>{explanation}</p>
                 </div>
-                <Button
-                  onClick={handleApply}
-                  variant="outline"
-                  className="w-full"
-                  disabled={!editor}
-                >
-                  Apply Suggestion
-                </Button>
-              </>
+              </div>
+            )}
+
+            {suggestionContent && (
+              <div>
+                <h3 className="text-sm font-semibold mb-2">
+                  AI Suggestion Preview
+                </h3>
+                <div
+                  className="text-sm bg-muted p-3 rounded-md border max-h-64 overflow-y-auto tiptap"
+                  dangerouslySetInnerHTML={{ __html: suggestionContent }}
+                />
+              </div>
+            )}
+
+            {suggestionContent && (
+              <Button
+                onClick={handleApply}
+                variant="outline"
+                className="w-full"
+                disabled={!editor}
+              >
+                Apply Suggestion
+              </Button>
             )}
           </div>
         </ScrollArea>
