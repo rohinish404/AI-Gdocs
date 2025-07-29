@@ -42,8 +42,9 @@ export const get = query({
         .paginate(paginationOpts);
     }
 
-    return await ctx.db.query("documents")
-      .withIndex("by_owner_id" , (q) => q.eq("ownerId", user.subject))
+    return await ctx.db
+      .query("documents")
+      .withIndex("by_owner_id", (q) => q.eq("ownerId", user.subject))
       .paginate(paginationOpts);
   },
 });
@@ -70,26 +71,34 @@ export const removeById = mutation({
 });
 
 export const updateById = mutation({
-  args: { id: v.id("documents"), title: v.string() },
+  args: {
+    id: v.id("documents"),
+    title: v.optional(v.string()),
+    initialContent: v.optional(v.string()),
+  },
   handler: async (ctx, args) => {
     const user = await ctx.auth.getUserIdentity();
     if (!user) {
       throw new ConvexError("Unauthorized");
     }
-
     const document = await ctx.db.get(args.id);
     if (!document) {
       throw new ConvexError("Document not found");
     }
     const isOwner = document.ownerId === user.subject;
-
     if (!isOwner) {
       throw new ConvexError("Unauthorized");
     }
-    return await ctx.db.patch(args.id, { title: args.title });
+
+    // Build update object with only provided fields
+    const updateData: { title?: string; initialContent?: string } = {};
+    if (args.title !== undefined) updateData.title = args.title;
+    if (args.initialContent !== undefined)
+      updateData.initialContent = args.initialContent;
+
+    return await ctx.db.patch(args.id, updateData);
   },
 });
-
 
 export const getById = query({
   args: { id: v.id("documents") },
@@ -97,8 +106,8 @@ export const getById = query({
     const document = await ctx.db.get(id);
 
     if (!document) {
-      throw new ConvexError('Document not found!');
+      throw new ConvexError("Document not found!");
     }
     return document;
-  }
-})
+  },
+});

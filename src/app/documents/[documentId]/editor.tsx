@@ -19,24 +19,41 @@ import Link from "@tiptap/extension-link";
 import TextAlign from "@tiptap/extension-text-align";
 import { LineHeightExtension } from "@/extensions/line-height";
 import { DOMSerializer } from "prosemirror-model";
-
 import { Button } from "@/components/ui/button";
 import { MessageSquareIcon } from "lucide-react";
-
 import { useEditorStore } from "@/store/use-editor-store";
 import { useAiSidebarStore } from "@/store/use-aisidebar-store";
 import { FontSizeExtension } from "@/extensions/font-size";
-import { SuggestionNode } from "@/extensions/suggestion-node"; // <- Add this import
-
+import { SuggestionNode } from "@/extensions/suggestion-node";
 import { Ruler } from "./ruler";
 import { LEFT_MARGIN_DEFAULT, RIGHT_MARGIN_DEFAULT } from "@/constants/margins";
+import { Id } from "../../../../convex/_generated/dataModel";
+import { useMutation } from "convex/react";
+import { api } from "../../../../convex/_generated/api";
+import { useDebounce } from "@/hooks/use-debounce";
+import { useSavingStore } from "@/store/use-saving-store";
 
 interface EditorProps {
+  documentId: Id<"documents">;
   initialContent?: string | undefined;
 }
-export const Editor = ({ initialContent }: EditorProps) => {
+
+export const Editor = ({ documentId, initialContent }: EditorProps) => {
   const { setEditor } = useEditorStore();
-  const { open: openAiSidebar, isOpen: isAiSidebarOpen } = useAiSidebarStore(); // <- Update this line
+  const { setIsSaving } = useSavingStore();
+  const { open: openAiSidebar, isOpen: isAiSidebarOpen } = useAiSidebarStore();
+
+  const updateContent = useMutation(api.documents.updateById);
+
+  const debouncedUpdate = useDebounce((html: string) => {
+    setIsSaving(true);
+    updateContent({
+      id: documentId,
+      initialContent: html,
+    }).finally(() => {
+      setIsSaving(false);
+    });
+  }, 1500);
 
   const editor = useEditor({
     immediatelyRender: false,
@@ -48,6 +65,8 @@ export const Editor = ({ initialContent }: EditorProps) => {
     },
     onUpdate({ editor }) {
       setEditor(editor);
+      const html = editor.getHTML();
+      debouncedUpdate(html);
     },
     onSelectionUpdate({ editor }) {
       setEditor(editor);
@@ -97,7 +116,7 @@ export const Editor = ({ initialContent }: EditorProps) => {
       TaskItem.configure({
         nested: true,
       }),
-      SuggestionNode, // <- Add this line
+      SuggestionNode,
     ],
     content: initialContent,
   });
@@ -127,7 +146,6 @@ export const Editor = ({ initialContent }: EditorProps) => {
             shouldShow={({ state }) => {
               const { from, to } = state.selection;
               const isTextSelected = from !== to;
-              // Check if a suggestion node is already present in the selection to avoid conflicts
               let suggestionExists = false;
               editor.state.doc.nodesBetween(from, to, (node) => {
                 if (node.type.name === "suggestionNode") {
@@ -135,7 +153,7 @@ export const Editor = ({ initialContent }: EditorProps) => {
                 }
               });
 
-              return isTextSelected && !isAiSidebarOpen && !suggestionExists; // <- Update this line
+              return isTextSelected && !isAiSidebarOpen && !suggestionExists;
             }}
           >
             <Button

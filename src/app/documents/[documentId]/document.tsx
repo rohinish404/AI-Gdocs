@@ -1,4 +1,3 @@
-// file: src/app/documents/[documentId]/document.tsx
 "use client";
 
 import { Preloaded, usePreloadedQuery } from "convex/react";
@@ -22,7 +21,10 @@ export const Document = ({ preloadedDocument }: DocumentProps) => {
         <Toolbar />
       </div>
       <div className="pt-[114px] print:pt-0">
-        <Editor initialContent={document.initialContent} />
+        <Editor
+          documentId={document._id}
+          initialContent={document.initialContent}
+        />
       </div>
     </div>
   );

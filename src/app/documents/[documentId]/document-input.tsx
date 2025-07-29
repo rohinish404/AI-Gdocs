@@ -1,6 +1,6 @@
 import { BsCloudCheck } from "react-icons/bs";
 import { Id } from "../../../../convex/_generated/dataModel";
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import { useMutation } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { useDebounce } from "@/hooks/use-debounce";
@@ -10,8 +10,9 @@ import { LoaderIcon } from "lucide-react";
 interface DocumentInputProps {
   title: string;
   id: Id<"documents">;
+  isSaving: boolean;
 }
-export const DocumentInput = ({ title, id }: DocumentInputProps) => {
+export const DocumentInput = ({ title, id, isSaving }: DocumentInputProps) => {
   const [value, setValue] = useState(title);
 
   const [isPending, setIsPending] = useState(false);
@@ -26,10 +27,15 @@ export const DocumentInput = ({ title, id }: DocumentInputProps) => {
 
     setIsPending(true);
     mutate({ id, title: newValue })
-      .then(() => toast.success("Document Updated"))
+      .then(() => toast.success("Document Renamed"))
       .catch(() => toast.error("Something went wrong"))
       .finally(() => setIsPending(false));
-  });
+  }, 1000);
+
+  useEffect(() => {
+    setValue(title);
+  }, [title]);
+
   const onChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
     setValue(newValue);
@@ -42,47 +48,52 @@ export const DocumentInput = ({ title, id }: DocumentInputProps) => {
     setIsPending(true);
     mutate({ id, title: value })
       .then(() => {
-        toast.success("Document Updated");
+        toast.success("Document Renamed");
         setIsEditing(false);
       })
       .catch(() => toast.error("Something went wrong"))
       .finally(() => setIsPending(false));
   };
 
-  const showLoader = isPending;
+  const showLoader = isPending || isSaving;
 
   return (
     <div className="flex items-center gap-2">
       {isEditing ? (
-        <form onSubmit={handleSubmit} className="relative w-fit max-w-[50ch]">
+        <form
+          onSubmit={handleSubmit}
+          onBlur={() => setIsEditing(false)}
+          className="relative w-fit max-w-[50ch]"
+        >
           <span className="invisible whitespace-pre px-1.5 text-lg">
             {value || " "}
           </span>
           <input
-            ref={inputRef}
+            ref={(ref) => {
+              inputRef.current = ref;
+              if (ref && isEditing) {
+                ref.focus();
+              }
+            }}
             value={value}
             onChange={onChange}
-            onBlur={() => setIsEditing(false)}
-            className="absolute inset-0 text-lg text-black px-1.5 bg-transparent truncate"
+            className="absolute inset-0 text-lg px-1.5 bg-transparent truncate"
           />
         </form>
       ) : (
         <span
           onClick={() => {
             setIsEditing(true);
-            setTimeout(() => {
-              inputRef.current?.focus();
-            }, 0);
           }}
           className="text-lg px-1.5 cursor-pointer truncate"
         >
           {title}
         </span>
       )}
-      {!showLoader && 
-      <BsCloudCheck />
-      }
-      {showLoader && <LoaderIcon className="size-4 animate-spin text-muted-foreground" />}
+      {!showLoader && <BsCloudCheck className="text-muted-foreground" />}
+      {showLoader && (
+        <LoaderIcon className="size-4 animate-spin text-muted-foreground" />
+      )}
     </div>
   );
 };

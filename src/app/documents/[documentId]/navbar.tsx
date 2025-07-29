@@ -40,17 +40,18 @@ import { useMutation } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-
 import { RenameDialog } from "@/components/rename-dialog";
 import { RemoveDialog } from "@/components/remove-dialog";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { UserButton } from "@clerk/nextjs";
+import { useSavingStore } from "@/store/use-saving-store";
 
 interface NavbarProps {
   data: Doc<"documents">;
 }
 export const Navbar = ({ data }: NavbarProps) => {
   const { editor } = useEditorStore();
+  const { isSaving } = useSavingStore();
 
   const router = useRouter();
   const mutation = useMutation(api.documents.create);
@@ -80,13 +81,14 @@ export const Navbar = ({ data }: NavbarProps) => {
     a.href = url;
     a.download = filename;
     a.click();
+    URL.revokeObjectURL(url);
   };
 
   const onSaveJSON = () => {
     if (!editor) return;
 
     const content = editor.getJSON();
-    const blob = new Blob([JSON.stringify(content)], {
+    const blob = new Blob([JSON.stringify(content, null, 2)], {
       type: "application/json",
     });
     onDownload(blob, `${data.title}.json`);
@@ -104,7 +106,7 @@ export const Navbar = ({ data }: NavbarProps) => {
     if (!editor) return;
 
     const content = editor.getText();
-    const blob = new Blob([JSON.stringify(content)], {
+    const blob = new Blob([content], {
       type: "text/plain",
     });
     onDownload(blob, `${data.title}.txt`);
@@ -116,7 +118,7 @@ export const Navbar = ({ data }: NavbarProps) => {
           <Image src="/logo.svg" alt="Logo" width={36} height={36} />
         </Link>
         <div className="flex flex-col">
-          <DocumentInput title={data.title} id={data._id} />
+          <DocumentInput title={data.title} id={data._id} isSaving={isSaving} />
           <div className="flex">
             <Menubar className="border-none bg-transparent shadow-none h-auto p-0">
               <MenubarMenu>
