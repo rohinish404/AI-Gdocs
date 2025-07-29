@@ -1,6 +1,6 @@
 "use client";
 
-import { useEditor, EditorContent } from "@tiptap/react";
+import { useEditor, EditorContent, BubbleMenu } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import TaskItem from "@tiptap/extension-task-item";
 import TaskList from "@tiptap/extension-task-list";
@@ -18,7 +18,6 @@ import Highlight from "@tiptap/extension-highlight";
 import Link from "@tiptap/extension-link";
 import TextAlign from "@tiptap/extension-text-align";
 import { LineHeightExtension } from "@/extensions/line-height";
-import { BubbleMenu } from "@tiptap/react";
 import { DOMSerializer } from "prosemirror-model";
 
 import { Button } from "@/components/ui/button";
@@ -27,6 +26,7 @@ import { MessageSquareIcon } from "lucide-react";
 import { useEditorStore } from "@/store/use-editor-store";
 import { useAiSidebarStore } from "@/store/use-aisidebar-store";
 import { FontSizeExtension } from "@/extensions/font-size";
+import { SuggestionNode } from "@/extensions/suggestion-node"; // <- Add this import
 
 import { Ruler } from "./ruler";
 import { LEFT_MARGIN_DEFAULT, RIGHT_MARGIN_DEFAULT } from "@/constants/margins";
@@ -36,7 +36,7 @@ interface EditorProps {
 }
 export const Editor = ({ initialContent }: EditorProps) => {
   const { setEditor } = useEditorStore();
-  const { open: openAiSidebar } = useAiSidebarStore();
+  const { open: openAiSidebar, isOpen: isAiSidebarOpen } = useAiSidebarStore(); // <- Update this line
 
   const editor = useEditor({
     immediatelyRender: false,
@@ -97,6 +97,7 @@ export const Editor = ({ initialContent }: EditorProps) => {
       TaskItem.configure({
         nested: true,
       }),
+      SuggestionNode, // <- Add this line
     ],
     content: initialContent,
   });
@@ -126,7 +127,15 @@ export const Editor = ({ initialContent }: EditorProps) => {
             shouldShow={({ state }) => {
               const { from, to } = state.selection;
               const isTextSelected = from !== to;
-              return isTextSelected && !useAiSidebarStore.getState().isOpen;
+              // Check if a suggestion node is already present in the selection to avoid conflicts
+              let suggestionExists = false;
+              editor.state.doc.nodesBetween(from, to, (node) => {
+                if (node.type.name === "suggestionNode") {
+                  suggestionExists = true;
+                }
+              });
+
+              return isTextSelected && !isAiSidebarOpen && !suggestionExists; // <- Update this line
             }}
           >
             <Button
@@ -136,7 +145,7 @@ export const Editor = ({ initialContent }: EditorProps) => {
               className="bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground gap-x-2"
             >
               <MessageSquareIcon className="size-4" />
-              Chat
+              Ask AI
             </Button>
           </BubbleMenu>
         )}
