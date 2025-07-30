@@ -33,15 +33,16 @@ export const DocumentsTable = ({
           <TableHeader>
             <TableRow className="hover:bg-transparent border-none">
               <TableHead>Name</TableHead>
-              <TableHead>&nbsp;</TableHead>
+              <TableHead> </TableHead>
               <TableHead className="hidden md:table-cell">Created at</TableHead>
+              <TableHead className="hidden md:table-cell">Updated at</TableHead>
             </TableRow>
           </TableHeader>
           {documents.length === 0 ? (
             <TableBody>
               <TableRow className="hover:bg-transparent">
                 <TableCell
-                  colSpan={4}
+                  colSpan={5}
                   className="h-24 text-center text-muted-foreground"
                 >
                   No Documents Found
@@ -58,7 +59,12 @@ export const DocumentsTable = ({
         </Table>
       )}
       <div className="flex items-center justify-center">
-        <Button variant="ghost" size="sm" onClick={()=>loadMore(5)} disabled={status !== "CanLoadMore"}>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => loadMore(5)}
+          disabled={status !== "CanLoadMore"}
+        >
           {status === "CanLoadMore" ? "Load More" : "End of results"}
         </Button>
       </div>

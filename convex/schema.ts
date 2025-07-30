@@ -6,10 +6,11 @@ export default defineSchema({
     title: v.string(),
     initialContent: v.optional(v.string()),
     ownerId: v.string(),
+    updatedAt: v.number(),
   })
-  .index("by_owner_id", ["ownerId"])
-  .searchIndex("search_title",{
-    searchField: "title",
-    filterFields: ["ownerId"],
-  }),
+    .index("by_owner_updated_at", ["ownerId", "updatedAt"])
+    .searchIndex("search_title", {
+      searchField: "title",
+      filterFields: ["ownerId"],
+    }),
 });

@@ -19,6 +19,7 @@ export const create = mutation({
       title: args.title ?? "Untitled Document",
       ownerId: user.subject,
       initialContent: args.initialContent,
+      updatedAt: Date.now(),
     });
   },
 });
@@ -44,7 +45,8 @@ export const get = query({
 
     return await ctx.db
       .query("documents")
-      .withIndex("by_owner_id", (q) => q.eq("ownerId", user.subject))
+      .withIndex("by_owner_updated_at", (q) => q.eq("ownerId", user.subject))
+      .order("desc")
       .paginate(paginationOpts);
   },
 });
@@ -90,8 +92,13 @@ export const updateById = mutation({
       throw new ConvexError("Unauthorized");
     }
 
-    // Build update object with only provided fields
-    const updateData: { title?: string; initialContent?: string } = {};
+    const updateData: {
+      title?: string;
+      initialContent?: string;
+      updatedAt: number;
+    } = {
+      updatedAt: Date.now(),
+    };
     if (args.title !== undefined) updateData.title = args.title;
     if (args.initialContent !== undefined)
       updateData.initialContent = args.initialContent;
