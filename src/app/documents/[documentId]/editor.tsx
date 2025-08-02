@@ -41,7 +41,8 @@ interface EditorProps {
 export const Editor = ({ documentId, initialContent }: EditorProps) => {
   const { setEditor } = useEditorStore();
   const { setIsSaving } = useSavingStore();
-  const { open: openAiSidebar, isOpen: isAiSidebarOpen } = useAiSidebarStore();
+  const { setContext: setAiContext, isOpen: isAiSidebarOpen } =
+    useAiSidebarStore();
 
   const updateContent = useMutation(api.documents.updateById);
 
@@ -132,7 +133,7 @@ export const Editor = ({ documentId, initialContent }: EditorProps) => {
 
     const htmlContent = tempDiv.innerHTML;
 
-    openAiSidebar(htmlContent, { from, to });
+    setAiContext(htmlContent, { from, to });
   };
 
   return (
@@ -153,7 +154,7 @@ export const Editor = ({ documentId, initialContent }: EditorProps) => {
                 }
               });
 
-              return isTextSelected && !isAiSidebarOpen && !suggestionExists;
+              return isTextSelected && isAiSidebarOpen && !suggestionExists;
             }}
           >
             <Button
@@ -163,7 +164,7 @@ export const Editor = ({ documentId, initialContent }: EditorProps) => {
               className="bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground gap-x-2"
             >
               <MessageSquareIcon className="size-4" />
-              Ask AI
+              Chat
             </Button>
           </BubbleMenu>
         )}

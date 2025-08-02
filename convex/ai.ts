@@ -11,7 +11,7 @@ const openai = new OpenAI({
 export const generate = action({
   args: {
     prompt: v.string(),
-    contextText: v.string(), // This will now be HTML
+    contextText: v.string(),
   },
   handler: async (_ctx, { prompt, contextText }) => {
     const userMessage = `
@@ -43,7 +43,7 @@ If the user prompt is "make this bold" and the context is "<p>Hello World</p>", 
 
     const response = await openai.chat.completions.create({
       model: "moonshotai/kimi-k2-instruct",
-      response_format: { type: "json_object" }, // Use JSON mode
+      response_format: { type: "json_object" },
       messages: [
         {
           role: "system",

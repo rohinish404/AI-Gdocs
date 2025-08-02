@@ -30,6 +30,7 @@ import {
   UnderlineIcon,
   Undo2Icon,
   UploadIcon,
+  SparklesIcon,
 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { useEditorStore } from "@/store/use-editor-store";
@@ -48,6 +49,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { useAiSidebarStore } from "@/store/use-aisidebar-store";
 
 const LineHeightButton = () => {
   const { editor } = useEditorStore();
@@ -556,6 +558,8 @@ const ToolbarButton = ({
 };
 export const Toolbar = () => {
   const { editor } = useEditorStore();
+  const { isOpen: isAiSidebarOpen, toggle: toggleAiSidebar } =
+    useAiSidebarStore();
 
   const sections: {
     label: string;
@@ -657,6 +661,12 @@ export const Toolbar = () => {
       {sections[2].map((item) => (
         <ToolbarButton key={item.label} {...item} />
       ))}
+      <Separator orientation="vertical" className="h-6 bg-neutral-300" />
+      <ToolbarButton
+        icon={SparklesIcon}
+        onClick={toggleAiSidebar}
+        isActive={isAiSidebarOpen}
+      />
     </div>
   );
 };

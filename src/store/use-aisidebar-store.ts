@@ -4,15 +4,17 @@ interface AiSidebarState {
   isOpen: boolean;
   contextText: string;
   selectionRange: { from: number; to: number } | null;
-  open: (text: string, range: { from: number; to: number }) => void;
-  close: () => void;
+  toggle: () => void;
+  setContext: (text: string, range: { from: number; to: number }) => void;
+  clearContext: () => void;
 }
 
 export const useAiSidebarStore = create<AiSidebarState>((set) => ({
-  isOpen: false,
+  isOpen: true, // Open by default
   contextText: "",
   selectionRange: null,
-  open: (contextText, selectionRange) =>
-    set({ isOpen: true, contextText, selectionRange }),
-  close: () => set({ isOpen: false, contextText: "", selectionRange: null }),
+  toggle: () => set((state) => ({ isOpen: !state.isOpen })),
+  setContext: (contextText, selectionRange) =>
+    set({ contextText, selectionRange }),
+  clearContext: () => set({ contextText: "", selectionRange: null }),
 }));
