@@ -60,13 +60,13 @@ export const QuickEditBubble = ({
   return (
     <form
       onSubmit={handleGenerate}
-      className="flex items-center gap-1 rounded-lg border bg-popover p-1 text-popover-foreground shadow-md"
+      className="flex items-center gap-1 rounded-lg border bg-popover p-1 text-popover-foreground shadow-md min-w-[600px]"
     >
       <Input
         value={prompt}
         onChange={(e) => setPrompt(e.target.value)}
         placeholder="e.g., 'Fix spelling'"
-        className="h-7 border-none bg-transparent focus-visible:ring-0"
+        className="h-15 p-2 border-none bg-transparent focus-visible:ring-0"
         autoFocus
         disabled={isLoading}
       />
