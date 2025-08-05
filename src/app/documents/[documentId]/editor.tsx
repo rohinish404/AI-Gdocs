@@ -34,6 +34,7 @@ import { useDebounce } from "@/hooks/use-debounce";
 import { useSavingStore } from "@/store/use-saving-store";
 import { useState } from "react";
 import { QuickEditBubble } from "./quick-edit-bubble";
+import { MultiQuickEditBubble } from "./multi-quick-edit-bubble";
 import { Separator } from "@/components/ui/separator";
 import { HighlightSelectionExtension } from "@/extensions/highlight-selection";
 
@@ -50,13 +51,14 @@ export const Editor = ({ documentId, initialContent }: EditorProps) => {
 
   const updateContent = useMutation(api.documents.updateById);
 
-  // State for the quick edit bubble
+  // State for the quick edit functionality
   const [isQuickEditing, setIsQuickEditing] = useState(false);
-  const [quickEditContextText, setQuickEditContextText] = useState("");
-  const [quickEditSelectionRange, setQuickEditSelectionRange] = useState<{
-    from: number;
-    to: number;
-  } | null>(null);
+  const [quickEditSelections, setQuickEditSelections] = useState<Array<{
+    id: string;
+    contextText: string;
+    range: { from: number; to: number };
+    filename?: string;
+  }>>([]);
 
   const debouncedUpdate = useDebounce((html: string) => {
     setIsSaving(true);
@@ -83,11 +85,7 @@ export const Editor = ({ documentId, initialContent }: EditorProps) => {
     },
     onSelectionUpdate({ editor }) {
       setEditor(editor);
-      // When selection changes, exit quick edit mode and clear decoration
-      if (isQuickEditing) {
-        setIsQuickEditing(false);
-        editor.chain().focus().clearHighlightDecoration().run();
-      }
+      // Don't clear selections on selection change - allow accumulation
     },
     onTransaction({ editor }) {
       setEditor(editor);
@@ -163,27 +161,58 @@ export const Editor = ({ documentId, initialContent }: EditorProps) => {
   const handleEditButtonClick = () => {
     const context = getSelectionContext();
     if (context && editor) {
-      setQuickEditContextText(context.htmlContent);
-      setQuickEditSelectionRange(context.range);
-      setIsQuickEditing(true);
+      const selectionId = `selection_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      const newSelection = {
+        id: selectionId,
+        contextText: context.htmlContent,
+        range: context.range,
+        filename: "document",
+      };
 
-      // Set the decoration to create the persistent highlight
-      editor
-        .chain()
-        .setHighlightDecoration({
-          from: context.range.from,
-          to: context.range.to,
-        })
-        .run();
+      // Check if this exact range is already selected
+      const exists = quickEditSelections.some(s => 
+        s.range.from === context.range.from && s.range.to === context.range.to
+      );
+      
+      if (!exists) {
+        // Add to existing selections (or start new list if not editing)
+        const newSelections = isQuickEditing ? [...quickEditSelections, newSelection] : [newSelection];
+        setQuickEditSelections(newSelections);
+        setIsQuickEditing(true);
+        
+        // Add highlight decoration for this selection
+        editor
+          .chain()
+          .setHighlightDecoration({
+            id: selectionId,
+            from: context.range.from,
+            to: context.range.to,
+          })
+          .run();
+      }
     }
   };
 
   const closeQuickEdit = () => {
     setIsQuickEditing(false);
-    setQuickEditContextText("");
-    setQuickEditSelectionRange(null);
+    setQuickEditSelections([]);
     // Clear the decoration when the bubble is closed
     editor?.chain().focus().clearHighlightDecoration().run();
+  };
+
+  const removeSelection = (selectionId: string) => {
+    const remainingSelections = quickEditSelections.filter(s => s.id !== selectionId);
+    setQuickEditSelections(remainingSelections);
+    
+    // Remove the highlight decoration for this specific selection
+    editor?.chain().focus().removeHighlightDecoration(selectionId).run();
+    
+    // If no selections left, close the editing mode
+    if (remainingSelections.length === 0) {
+      setIsQuickEditing(false);
+      editor?.chain().focus().clearHighlightDecoration().run();
+    }
   };
 
   return (
@@ -201,6 +230,11 @@ export const Editor = ({ documentId, initialContent }: EditorProps) => {
               },
             }}
             shouldShow={({ state, editor }) => {
+              // If we're in quick editing mode, always show the menu
+              if (isQuickEditing && quickEditSelections.length > 0) {
+                return true;
+              }
+
               const { from, to } = state.selection;
               const isTextSelected = from !== to;
 
@@ -218,15 +252,13 @@ export const Editor = ({ documentId, initialContent }: EditorProps) => {
               return !suggestionExists;
             }}
           >
-            {isQuickEditing &&
-            quickEditContextText &&
-            quickEditSelectionRange ? (
-              // Show the Quick Edit input
-              <QuickEditBubble
+            {isQuickEditing && quickEditSelections.length > 0 ? (
+              // Show the Multi Quick Edit input
+              <MultiQuickEditBubble
                 editor={editor}
-                contextText={quickEditContextText}
-                selectionRange={quickEditSelectionRange}
-                onClose={closeQuickEdit} // Use the new close function
+                selections={quickEditSelections}
+                onClose={closeQuickEdit}
+                onRemoveSelection={removeSelection}
               />
             ) : (
               // Show the initial action selection buttons

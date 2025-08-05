@@ -319,3 +319,37 @@
         0.7 0.1 260 / 0.5
     ); /* A slightly more opaque version for dark mode */
 }
+
+/* Multiple selection highlight colors */
+.fake-selection-highlight-1 {
+    background-color: oklch(0.7 0.1 260 / 0.4); /* Blue */
+}
+.fake-selection-highlight-2 {
+    background-color: oklch(0.7 0.1 120 / 0.4); /* Green */
+}
+.fake-selection-highlight-3 {
+    background-color: oklch(0.7 0.1 30 / 0.4); /* Orange */
+}
+.fake-selection-highlight-4 {
+    background-color: oklch(0.7 0.1 300 / 0.4); /* Purple */
+}
+.fake-selection-highlight-5 {
+    background-color: oklch(0.7 0.1 180 / 0.4); /* Cyan */
+}
+
+/* Dark mode variants */
+.dark .fake-selection-highlight-1 {
+    background-color: oklch(0.7 0.1 260 / 0.5); /* Blue */
+}
+.dark .fake-selection-highlight-2 {
+    background-color: oklch(0.7 0.1 120 / 0.5); /* Green */
+}
+.dark .fake-selection-highlight-3 {
+    background-color: oklch(0.7 0.1 30 / 0.5); /* Orange */
+}
+.dark .fake-selection-highlight-4 {
+    background-color: oklch(0.7 0.1 300 / 0.5); /* Purple */
+}
+.dark .fake-selection-highlight-5 {
+    background-color: oklch(0.7 0.1 180 / 0.5); /* Cyan */
+}
