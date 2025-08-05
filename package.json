@@ -70,6 +70,8 @@
     "nuqs": "^2.4.3",
     "openai": "^5.10.2",
     "prosemirror-model": "^1.25.2",
+    "prosemirror-state": "^1.4.3",
+    "prosemirror-view": "^1.40.1",
     "react": "^19.0.0",
     "react-color": "^2.19.3",
     "react-day-picker": "^9.8.0",

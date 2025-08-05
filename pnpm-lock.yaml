@@ -191,6 +191,12 @@ importers:
       prosemirror-model:
         specifier: ^1.25.2
         version: 1.25.2
+      prosemirror-state:
+        specifier: ^1.4.3
+        version: 1.4.3
+      prosemirror-view:
+        specifier: ^1.40.1
+        version: 1.40.1
       react:
         specifier: ^19.0.0
         version: 19.1.0

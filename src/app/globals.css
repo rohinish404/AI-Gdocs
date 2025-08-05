@@ -308,3 +308,14 @@
         }
     }
 }
+.fake-selection-highlight {
+    background-color: oklch(
+        0.7 0.1 260 / 0.4
+    ); /* A semi-transparent blueish color */
+}
+
+.dark .fake-selection-highlight {
+    background-color: oklch(
+        0.7 0.1 260 / 0.5
+    ); /* A slightly more opaque version for dark mode */
+}

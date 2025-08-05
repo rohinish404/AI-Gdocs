@@ -20,7 +20,7 @@ import TextAlign from "@tiptap/extension-text-align";
 import { LineHeightExtension } from "@/extensions/line-height";
 import { DOMSerializer } from "prosemirror-model";
 import { Button } from "@/components/ui/button";
-import { MessageSquareIcon } from "lucide-react";
+import { MessageSquareIcon, FilePenIcon } from "lucide-react";
 import { useEditorStore } from "@/store/use-editor-store";
 import { useAiSidebarStore } from "@/store/use-aisidebar-store";
 import { FontSizeExtension } from "@/extensions/font-size";
@@ -32,6 +32,10 @@ import { useMutation } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { useDebounce } from "@/hooks/use-debounce";
 import { useSavingStore } from "@/store/use-saving-store";
+import { useState } from "react";
+import { QuickEditBubble } from "./quick-edit-bubble";
+import { Separator } from "@/components/ui/separator";
+import { HighlightSelectionExtension } from "@/extensions/highlight-selection";
 
 interface EditorProps {
   documentId: Id<"documents">;
@@ -45,6 +49,14 @@ export const Editor = ({ documentId, initialContent }: EditorProps) => {
     useAiSidebarStore();
 
   const updateContent = useMutation(api.documents.updateById);
+
+  // State for the quick edit bubble
+  const [isQuickEditing, setIsQuickEditing] = useState(false);
+  const [quickEditContextText, setQuickEditContextText] = useState("");
+  const [quickEditSelectionRange, setQuickEditSelectionRange] = useState<{
+    from: number;
+    to: number;
+  } | null>(null);
 
   const debouncedUpdate = useDebounce((html: string) => {
     setIsSaving(true);
@@ -71,6 +83,11 @@ export const Editor = ({ documentId, initialContent }: EditorProps) => {
     },
     onSelectionUpdate({ editor }) {
       setEditor(editor);
+      // When selection changes, exit quick edit mode and clear decoration
+      if (isQuickEditing) {
+        setIsQuickEditing(false);
+        editor.chain().focus().clearHighlightDecoration().run();
+      }
     },
     onTransaction({ editor }) {
       setEditor(editor);
@@ -118,12 +135,13 @@ export const Editor = ({ documentId, initialContent }: EditorProps) => {
         nested: true,
       }),
       SuggestionNode,
+      HighlightSelectionExtension, // Add the new extension here
     ],
     content: initialContent,
   });
 
-  const handleAiButtonClick = () => {
-    if (!editor) return;
+  const getSelectionContext = () => {
+    if (!editor) return null;
     const { from, to } = editor.state.selection;
     const slice = editor.state.doc.slice(from, to);
 
@@ -132,8 +150,40 @@ export const Editor = ({ documentId, initialContent }: EditorProps) => {
     tempDiv.appendChild(serializer.serializeFragment(slice.content));
 
     const htmlContent = tempDiv.innerHTML;
+    return { htmlContent, range: { from, to } };
+  };
 
-    setAiContext(htmlContent, { from, to });
+  const handleAiButtonClick = () => {
+    const context = getSelectionContext();
+    if (context) {
+      setAiContext(context.htmlContent, context.range);
+    }
+  };
+
+  const handleEditButtonClick = () => {
+    const context = getSelectionContext();
+    if (context && editor) {
+      setQuickEditContextText(context.htmlContent);
+      setQuickEditSelectionRange(context.range);
+      setIsQuickEditing(true);
+
+      // Set the decoration to create the persistent highlight
+      editor
+        .chain()
+        .setHighlightDecoration({
+          from: context.range.from,
+          to: context.range.to,
+        })
+        .run();
+    }
+  };
+
+  const closeQuickEdit = () => {
+    setIsQuickEditing(false);
+    setQuickEditContextText("");
+    setQuickEditSelectionRange(null);
+    // Clear the decoration when the bubble is closed
+    editor?.chain().focus().clearHighlightDecoration().run();
   };
 
   return (
@@ -143,10 +193,21 @@ export const Editor = ({ documentId, initialContent }: EditorProps) => {
         {editor && (
           <BubbleMenu
             editor={editor}
-            tippyOptions={{ duration: 100 }}
-            shouldShow={({ state }) => {
+            tippyOptions={{
+              duration: 100,
+              onHidden: () => {
+                // Use the robust close function to clean up state and decorations
+                closeQuickEdit();
+              },
+            }}
+            shouldShow={({ state, editor }) => {
               const { from, to } = state.selection;
               const isTextSelected = from !== to;
+
+              if (!isTextSelected) {
+                return false;
+              }
+
               let suggestionExists = false;
               editor.state.doc.nodesBetween(from, to, (node) => {
                 if (node.type.name === "suggestionNode") {
@@ -154,18 +215,47 @@ export const Editor = ({ documentId, initialContent }: EditorProps) => {
                 }
               });
 
-              return isTextSelected && isAiSidebarOpen && !suggestionExists;
+              return !suggestionExists;
             }}
           >
-            <Button
-              onClick={handleAiButtonClick}
-              variant="ghost"
-              size="sm"
-              className="bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground gap-x-2"
-            >
-              <MessageSquareIcon className="size-4" />
-              Chat
-            </Button>
+            {isQuickEditing &&
+            quickEditContextText &&
+            quickEditSelectionRange ? (
+              // Show the Quick Edit input
+              <QuickEditBubble
+                editor={editor}
+                contextText={quickEditContextText}
+                selectionRange={quickEditSelectionRange}
+                onClose={closeQuickEdit} // Use the new close function
+              />
+            ) : (
+              // Show the initial action selection buttons
+              <div className="flex items-center gap-1 rounded-lg border bg-popover p-1 text-popover-foreground shadow-md">
+                <Button
+                  onClick={handleEditButtonClick}
+                  variant="ghost"
+                  size="sm"
+                  className="gap-x-2"
+                >
+                  <FilePenIcon className="size-4" />
+                  Edit
+                </Button>
+                {isAiSidebarOpen && (
+                  <>
+                    <Separator orientation="vertical" className="h-6" />
+                    <Button
+                      onClick={handleAiButtonClick}
+                      variant="ghost"
+                      size="sm"
+                      className="gap-x-2"
+                    >
+                      <MessageSquareIcon className="size-4" />
+                      Chat
+                    </Button>
+                  </>
+                )}
+              </div>
+            )}
           </BubbleMenu>
         )}
         <EditorContent editor={editor} />
