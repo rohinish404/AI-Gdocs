@@ -73,24 +73,31 @@ export const MultiQuickEditBubble = ({
         }),
       );
 
-      // Apply the individual results to their respective selections
-      // Start from the end to avoid range shift issues
+      // Sort results by position from end to beginning to avoid range shift issues
       const sortedResults = results.sort(
         (a, b) => b.selection.range.from - a.selection.range.from,
       );
 
+      // Create a single transaction to apply all changes at once
+      const tr = editor.state.tr;
       let hasErrors = false;
+
+      // Apply changes from end to beginning to maintain position integrity
       for (const { selection, result } of sortedResults) {
         if (result && result.content) {
-          editor
-            .chain()
-            .focus()
-            .deleteRange(selection.range)
-            .setSuggestion({
-              originalContent: selection.contextText,
-              suggestedContent: result.content,
-            })
-            .run();
+          // Calculate the position for this suggestion node
+          const { from, to } = selection.range;
+
+          // Delete the original content
+          tr.delete(from, to);
+
+          // Insert the suggestion node at the same position
+          const suggestionNode = editor.schema.nodes.suggestionNode.create({
+            originalContent: selection.contextText,
+            suggestedContent: result.content,
+          });
+
+          tr.insert(from, suggestionNode);
         } else {
           hasErrors = true;
           console.error(
@@ -100,14 +107,24 @@ export const MultiQuickEditBubble = ({
         }
       }
 
-      if (hasErrors) {
+      // Apply the transaction if there are any changes
+      if (!tr.steps.length && hasErrors) {
         toast.error(
-          "Some selections failed to process. Check console for details.",
+          "All selections failed to process. Check console for details.",
         );
       } else {
-        toast.success(
-          `Successfully processed ${selections.length} selections.`,
-        );
+        // Dispatch the transaction
+        editor.view.dispatch(tr);
+
+        if (hasErrors) {
+          toast.error(
+            "Some selections failed to process. Check console for details.",
+          );
+        } else {
+          toast.success(
+            `Successfully created ${sortedResults.length} diffs. Accept or reject each individually.`,
+          );
+        }
       }
 
       onClose();

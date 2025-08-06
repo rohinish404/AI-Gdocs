@@ -33,7 +33,6 @@ import { api } from "../../../../convex/_generated/api";
 import { useDebounce } from "@/hooks/use-debounce";
 import { useSavingStore } from "@/store/use-saving-store";
 import { useState } from "react";
-import { QuickEditBubble } from "./quick-edit-bubble";
 import { MultiQuickEditBubble } from "./multi-quick-edit-bubble";
 import { Separator } from "@/components/ui/separator";
 import { HighlightSelectionExtension } from "@/extensions/highlight-selection";
@@ -41,6 +40,13 @@ import { HighlightSelectionExtension } from "@/extensions/highlight-selection";
 interface EditorProps {
   documentId: Id<"documents">;
   initialContent?: string | undefined;
+}
+
+interface QuickEditSelection {
+  id: string;
+  contextText: string;
+  range: { from: number; to: number };
+  filename?: string;
 }
 
 export const Editor = ({ documentId, initialContent }: EditorProps) => {
@@ -53,12 +59,11 @@ export const Editor = ({ documentId, initialContent }: EditorProps) => {
 
   // State for the quick edit functionality
   const [isQuickEditing, setIsQuickEditing] = useState(false);
-  const [quickEditSelections, setQuickEditSelections] = useState<Array<{
-    id: string;
-    contextText: string;
-    range: { from: number; to: number };
-    filename?: string;
-  }>>([]);
+  const [quickEditSelections, setQuickEditSelections] = useState<
+    QuickEditSelection[]
+  >([]);
+  const [bubbleMenuAnchorPos, setBubbleMenuAnchorPos] =
+    useState<DOMRect | null>(null);
 
   const debouncedUpdate = useDebounce((html: string) => {
     setIsSaving(true);
@@ -84,16 +89,6 @@ export const Editor = ({ documentId, initialContent }: EditorProps) => {
       debouncedUpdate(html);
     },
     onSelectionUpdate({ editor }) {
-      setEditor(editor);
-      // Don't clear selections on selection change - allow accumulation
-    },
-    onTransaction({ editor }) {
-      setEditor(editor);
-    },
-    onBlur({ editor }) {
-      setEditor(editor);
-    },
-    onContentError({ editor }) {
       setEditor(editor);
     },
     editorProps: {
@@ -133,7 +128,7 @@ export const Editor = ({ documentId, initialContent }: EditorProps) => {
         nested: true,
       }),
       SuggestionNode,
-      HighlightSelectionExtension, // Add the new extension here
+      HighlightSelectionExtension,
     ],
     content: initialContent,
   });
@@ -141,6 +136,7 @@ export const Editor = ({ documentId, initialContent }: EditorProps) => {
   const getSelectionContext = () => {
     if (!editor) return null;
     const { from, to } = editor.state.selection;
+    if (from === to) return null;
     const slice = editor.state.doc.slice(from, to);
 
     const serializer = DOMSerializer.fromSchema(editor.schema);
@@ -161,29 +157,35 @@ export const Editor = ({ documentId, initialContent }: EditorProps) => {
   const handleEditButtonClick = () => {
     const context = getSelectionContext();
     if (context && editor) {
+      // Anchor the main bubble menu to the first selection's position
+      if (quickEditSelections.length === 0) {
+        const { from } = editor.state.selection;
+        const pos = editor.view.coordsAtPos(from);
+        setBubbleMenuAnchorPos(new DOMRect(pos.left, pos.top, 0, 0));
+      }
+
       const selectionId = `selection_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      
-      const newSelection = {
+
+      const newSelection: QuickEditSelection = {
         id: selectionId,
         contextText: context.htmlContent,
         range: context.range,
         filename: "document",
       };
 
-      // Check if this exact range is already selected
-      const exists = quickEditSelections.some(s => 
-        s.range.from === context.range.from && s.range.to === context.range.to
+      const exists = quickEditSelections.some(
+        (s) =>
+          s.range.from === context.range.from &&
+          s.range.to === context.range.to,
       );
-      
+
       if (!exists) {
-        // Add to existing selections (or start new list if not editing)
-        const newSelections = isQuickEditing ? [...quickEditSelections, newSelection] : [newSelection];
-        setQuickEditSelections(newSelections);
+        setQuickEditSelections((prev) => [...prev, newSelection]);
         setIsQuickEditing(true);
-        
-        // Add highlight decoration for this selection
+
         editor
           .chain()
+          .focus()
           .setHighlightDecoration({
             id: selectionId,
             from: context.range.from,
@@ -195,23 +197,24 @@ export const Editor = ({ documentId, initialContent }: EditorProps) => {
   };
 
   const closeQuickEdit = () => {
-    setIsQuickEditing(false);
-    setQuickEditSelections([]);
-    // Clear the decoration when the bubble is closed
-    editor?.chain().focus().clearHighlightDecoration().run();
+    if (isQuickEditing) {
+      setIsQuickEditing(false);
+      setQuickEditSelections([]);
+      setBubbleMenuAnchorPos(null);
+      editor?.chain().focus().clearHighlightDecoration().run();
+    }
   };
 
   const removeSelection = (selectionId: string) => {
-    const remainingSelections = quickEditSelections.filter(s => s.id !== selectionId);
+    const remainingSelections = quickEditSelections.filter(
+      (s) => s.id !== selectionId,
+    );
     setQuickEditSelections(remainingSelections);
-    
-    // Remove the highlight decoration for this specific selection
+
     editor?.chain().focus().removeHighlightDecoration(selectionId).run();
-    
-    // If no selections left, close the editing mode
+
     if (remainingSelections.length === 0) {
-      setIsQuickEditing(false);
-      editor?.chain().focus().clearHighlightDecoration().run();
+      closeQuickEdit();
     }
   };
 
@@ -220,48 +223,48 @@ export const Editor = ({ documentId, initialContent }: EditorProps) => {
       <Ruler />
       <div className="min-w-max justify-center w-[816px] py-4 print:py-0 mx-auto print:w-full print:min-w-0">
         {editor && (
-          <BubbleMenu
-            editor={editor}
-            tippyOptions={{
-              duration: 100,
-              onHidden: () => {
-                // Use the robust close function to clean up state and decorations
-                closeQuickEdit();
-              },
-            }}
-            shouldShow={({ state, editor }) => {
-              // If we're in quick editing mode, always show the menu
-              if (isQuickEditing && quickEditSelections.length > 0) {
-                return true;
+          <>
+            {/* Bubble 1: The main multi-edit input, anchored to the first selection */}
+            <BubbleMenu
+              editor={editor}
+              tippyOptions={{
+                getReferenceClientRect: () => bubbleMenuAnchorPos,
+                onHidden: closeQuickEdit,
+                appendTo: "parent",
+              }}
+              shouldShow={() =>
+                isQuickEditing && quickEditSelections.length > 0
               }
-
-              const { from, to } = state.selection;
-              const isTextSelected = from !== to;
-
-              if (!isTextSelected) {
-                return false;
-              }
-
-              let suggestionExists = false;
-              editor.state.doc.nodesBetween(from, to, (node) => {
-                if (node.type.name === "suggestionNode") {
-                  suggestionExists = true;
-                }
-              });
-
-              return !suggestionExists;
-            }}
-          >
-            {isQuickEditing && quickEditSelections.length > 0 ? (
-              // Show the Multi Quick Edit input
+            >
               <MultiQuickEditBubble
                 editor={editor}
                 selections={quickEditSelections}
                 onClose={closeQuickEdit}
                 onRemoveSelection={removeSelection}
               />
-            ) : (
-              // Show the initial action selection buttons
+            </BubbleMenu>
+
+            {/* Bubble 2: The action menu for making new selections */}
+            <BubbleMenu
+              editor={editor}
+              tippyOptions={{ duration: 100, appendTo: "parent" }}
+              shouldShow={({ state, editor }) => {
+                const { from, to } = state.selection;
+                const isTextSelected = from !== to;
+                if (!isTextSelected) return false;
+
+                // Don't show if a suggestion node is selected
+                let suggestionExists = false;
+                editor.state.doc.nodesBetween(from, to, (node) => {
+                  if (node.type.name === "suggestionNode") {
+                    suggestionExists = true;
+                  }
+                });
+                if (suggestionExists) return false;
+
+                return true;
+              }}
+            >
               <div className="flex items-center gap-1 rounded-lg border bg-popover p-1 text-popover-foreground shadow-md">
                 <Button
                   onClick={handleEditButtonClick}
@@ -287,8 +290,8 @@ export const Editor = ({ documentId, initialContent }: EditorProps) => {
                   </>
                 )}
               </div>
-            )}
-          </BubbleMenu>
+            </BubbleMenu>
+          </>
         )}
         <EditorContent editor={editor} />
       </div>

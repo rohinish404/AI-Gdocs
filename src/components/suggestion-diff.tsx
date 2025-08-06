@@ -30,8 +30,18 @@ export const SuggestionDiff = (props: NodeViewProps) => {
   };
 
   return (
-    <NodeViewWrapper className="suggestion-node my-4 p-4 border rounded-lg bg-muted/50">
+    <NodeViewWrapper className="suggestion-node my-4 p-4 border rounded-lg bg-muted/50 transition-colors hover:bg-muted/70">
       <div className="flex flex-col gap-4">
+        {/* Header with diff identifier */}
+        <div className="flex items-center justify-between">
+          <div className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
+            AI Suggestion
+          </div>
+          <div className="text-xs text-muted-foreground">
+            Accept or reject this change
+          </div>
+        </div>
+
         {/* Original Content Panel */}
         <div>
           <h4 className="text-xs font-semibold mb-2 text-destructive/80">
