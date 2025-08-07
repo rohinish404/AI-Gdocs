@@ -84,10 +84,7 @@ export const AiSidebar = () => {
     <div className="p-0 flex flex-col h-full bg-background">
       <div className="p-4 border-b flex-shrink-0">
         <div className="flex items-center justify-between">
-          <h2 className="flex items-center gap-x-2 font-semibold">
-            <SparklesIcon className="size-5 text-primary" />
-            AI Assistant
-          </h2>
+          <h2 className="flex items-center gap-x-2 font-semibold">Chat</h2>
           <ModelSelector />
         </div>
       </div>

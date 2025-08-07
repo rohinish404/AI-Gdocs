@@ -31,7 +31,7 @@ export const Document = ({ preloadedDocument }: DocumentProps) => {
       const panels = panelGroup.getLayout();
       if (panels.length > 1) {
         if (isOpen && panels[1] < 10) {
-          panelGroup.setLayout([65, 35]);
+          panelGroup.setLayout([75, 25]);
         } else if (!isOpen && panels[1] > 0) {
           panelGroup.setLayout([100, 0]);
         }
@@ -53,7 +53,7 @@ export const Document = ({ preloadedDocument }: DocumentProps) => {
           className="h-full"
         >
           <ResizablePanel
-            defaultSize={65}
+            defaultSize={75}
             minSize={30}
             className="overflow-y-auto"
           >
@@ -66,11 +66,11 @@ export const Document = ({ preloadedDocument }: DocumentProps) => {
           <ResizableHandle withHandle />
 
           <ResizablePanel
-            defaultSize={35}
+            defaultSize={25}
             collapsible
             collapsedSize={0}
             minSize={20}
-            maxSize={40}
+            maxSize={30}
             onCollapse={() => {
               if (isOpen) {
                 toggleAiSidebar();
