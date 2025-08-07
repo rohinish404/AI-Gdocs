@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { DocumentInput } from "./document-input";
 import {
@@ -115,7 +114,7 @@ export const Navbar = ({ data }: NavbarProps) => {
     <nav className="flex justify-between items-center">
       <div className="flex gap-2 items-center">
         <Link href="/">
-          <Image src="/logo.svg" alt="Logo" width={36} height={36} />
+          <h3 className="text-xl font-semibold">Docs0</h3>
         </Link>
         <div className="flex flex-col">
           <DocumentInput title={data.title} id={data._id} isSaving={isSaving} />

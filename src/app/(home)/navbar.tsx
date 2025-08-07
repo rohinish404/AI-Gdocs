@@ -1,5 +1,4 @@
 import Link from "next/link";
-import Image from "next/image";
 import { SearchInput } from "./search-input";
 import { UserButton } from "@clerk/nextjs";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -9,9 +8,8 @@ export const Navbar = () => {
     <nav className="flex items-center justify-between h-full w-full">
       <div className="flex gap-3 items-center shrink-0 pr-6">
         <Link href="/">
-          <Image src="/logo.svg" alt="Logo" width={36} height={36} />
+          <h3 className="text-xl font-semibold">Docs0</h3>
         </Link>
-        <h3 className="text-xl">Docs</h3>
       </div>
       <SearchInput />
       <div className="flex items-center gap-x-2">
