@@ -1,6 +1,7 @@
 "use client";
 
 import { useEditor, EditorContent, BubbleMenu } from "@tiptap/react";
+import { createPortal } from "react-dom";
 import StarterKit from "@tiptap/starter-kit";
 import TaskItem from "@tiptap/extension-task-item";
 import TaskList from "@tiptap/extension-task-list";
@@ -32,7 +33,7 @@ import { useMutation } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { useDebounce } from "@/hooks/use-debounce";
 import { useSavingStore } from "@/store/use-saving-store";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { MultiQuickEditBubble } from "./multi-quick-edit-bubble";
 import { Separator } from "@/components/ui/separator";
 import { HighlightSelectionExtension } from "@/extensions/highlight-selection";
@@ -62,8 +63,19 @@ export const Editor = ({ documentId, initialContent }: EditorProps) => {
   const [quickEditSelections, setQuickEditSelections] = useState<
     QuickEditSelection[]
   >([]);
-  const [bubbleMenuAnchorPos, setBubbleMenuAnchorPos] =
-    useState<DOMRect | null>(null);
+  const [bubbleMenuAnchorPos, setBubbleMenuAnchorPos] = useState<{
+    top: number;
+    left: number;
+  } | null>(null);
+  const [isMounted, setIsMounted] = useState(false);
+
+  // A ref to the container to position the quick edit bubble relative to it
+  const editorContainerRef = useRef<HTMLDivElement>(null);
+
+  // Set mounted state for client-side rendering
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const debouncedUpdate = useDebounce((html: string) => {
     setIsSaving(true);
@@ -90,6 +102,7 @@ export const Editor = ({ documentId, initialContent }: EditorProps) => {
     },
     onSelectionUpdate({ editor }) {
       setEditor(editor);
+      // We no longer need to auto-close quick edit on selection change.
     },
     editorProps: {
       attributes: {
@@ -154,18 +167,11 @@ export const Editor = ({ documentId, initialContent }: EditorProps) => {
     }
   };
 
-  const handleEditButtonClick = () => {
+  // NEW: This function ADDS the current selection to an ACTIVE session
+  const addSelectionToSession = () => {
     const context = getSelectionContext();
     if (context && editor) {
-      // Anchor the main bubble menu to the first selection's position
-      if (quickEditSelections.length === 0) {
-        const { from } = editor.state.selection;
-        const pos = editor.view.coordsAtPos(from);
-        setBubbleMenuAnchorPos(new DOMRect(pos.left, pos.top, 0, 0));
-      }
-
       const selectionId = `selection_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-
       const newSelection: QuickEditSelection = {
         id: selectionId,
         contextText: context.htmlContent,
@@ -173,6 +179,7 @@ export const Editor = ({ documentId, initialContent }: EditorProps) => {
         filename: "document",
       };
 
+      // Check for duplicates before adding
       const exists = quickEditSelections.some(
         (s) =>
           s.range.from === context.range.from &&
@@ -181,8 +188,6 @@ export const Editor = ({ documentId, initialContent }: EditorProps) => {
 
       if (!exists) {
         setQuickEditSelections((prev) => [...prev, newSelection]);
-        setIsQuickEditing(true);
-
         editor
           .chain()
           .focus()
@@ -191,8 +196,54 @@ export const Editor = ({ documentId, initialContent }: EditorProps) => {
             from: context.range.from,
             to: context.range.to,
           })
+          // Collapse selection to the start to indicate it has been "added"
+          .setTextSelection(context.range.from)
           .run();
       }
+    }
+  };
+
+  // MODIFIED: This function now only STARTS a session
+  const startQuickEditSession = () => {
+    const context = getSelectionContext();
+    if (context && editor && editorContainerRef.current) {
+      const selectionId = `selection_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const newSelection: QuickEditSelection = {
+        id: selectionId,
+        contextText: context.htmlContent,
+        range: context.range,
+        filename: "document",
+      };
+
+      // Get position relative to the container, not the viewport
+      if (editorContainerRef.current && isMounted) {
+        try {
+          const containerRect = editorContainerRef.current.getBoundingClientRect();
+          const pos = editor.view.coordsAtPos(context.range.from);
+
+          setBubbleMenuAnchorPos({
+            top: Math.max(0, pos.top - containerRect.top),
+            left: Math.max(0, pos.left - containerRect.left),
+          });
+        } catch (error) {
+          console.warn("Failed to calculate bubble menu position:", error);
+          setBubbleMenuAnchorPos({ top: 0, left: 0 });
+        }
+      }
+
+      setQuickEditSelections([newSelection]);
+      setIsQuickEditing(true);
+
+      editor
+        .chain()
+        .focus()
+        .setHighlightDecoration({
+          id: selectionId,
+          from: context.range.from,
+          to: context.range.to,
+        })
+        .setTextSelection(context.range.from) // Collapse selection
+        .run();
     }
   };
 
@@ -219,32 +270,36 @@ export const Editor = ({ documentId, initialContent }: EditorProps) => {
   };
 
   return (
-    <div className="size-full overflow-x-auto bg-secondary px-4 print:p-0 print:bg-white print:pverflow-visible">
+    <div
+      ref={editorContainerRef}
+      className="relative size-full overflow-x-auto bg-secondary px-4 print:p-0 print:bg-white print:overflow-visible"
+    >
       <Ruler />
       <div className="min-w-max justify-center w-[816px] py-4 print:py-0 mx-auto print:w-full print:min-w-0">
         {editor && (
           <>
-            {/* Bubble 1: The main multi-edit input, anchored to the first selection */}
-            <BubbleMenu
-              editor={editor}
-              tippyOptions={{
-                getReferenceClientRect: () => bubbleMenuAnchorPos,
-                onHidden: closeQuickEdit,
-                appendTo: "parent",
-              }}
-              shouldShow={() =>
-                isQuickEditing && quickEditSelections.length > 0
-              }
-            >
-              <MultiQuickEditBubble
-                editor={editor}
-                selections={quickEditSelections}
-                onClose={closeQuickEdit}
-                onRemoveSelection={removeSelection}
-              />
-            </BubbleMenu>
+            {/* The "session panel" - NOT a BubbleMenu */}
+            {isQuickEditing && bubbleMenuAnchorPos && isMounted &&
+              editorContainerRef.current &&
+              createPortal(
+                <div
+                  className="fixed z-50"
+                  style={{
+                    top: `${bubbleMenuAnchorPos.top + editorContainerRef.current.getBoundingClientRect().top}px`,
+                    left: `${bubbleMenuAnchorPos.left + editorContainerRef.current.getBoundingClientRect().left}px`,
+                  }}
+                >
+                  <MultiQuickEditBubble
+                    editor={editor}
+                    selections={quickEditSelections}
+                    onClose={closeQuickEdit}
+                    onRemoveSelection={removeSelection}
+                  />
+                </div>,
+                document.body
+              )}
 
-            {/* Bubble 2: The action menu for making new selections */}
+            {/* The true BubbleMenu - for contextual actions */}
             <BubbleMenu
               editor={editor}
               tippyOptions={{ duration: 100, appendTo: "parent" }}
@@ -253,40 +308,53 @@ export const Editor = ({ documentId, initialContent }: EditorProps) => {
                 const isTextSelected = from !== to;
                 if (!isTextSelected) return false;
 
-                // Don't show if a suggestion node is selected
                 let suggestionExists = false;
                 editor.state.doc.nodesBetween(from, to, (node) => {
                   if (node.type.name === "suggestionNode") {
                     suggestionExists = true;
                   }
                 });
-                if (suggestionExists) return false;
-
-                return true;
+                return !suggestionExists;
               }}
             >
               <div className="flex items-center gap-1 rounded-lg border bg-popover p-1 text-popover-foreground shadow-md">
-                <Button
-                  onClick={handleEditButtonClick}
-                  variant="ghost"
-                  size="sm"
-                  className="gap-x-2"
-                >
-                  <FilePenIcon className="size-4" />
-                  Edit
-                </Button>
-                {isAiSidebarOpen && (
+                {isQuickEditing ? (
+                  // If a session is active, show the "Add" button
+                  <Button
+                    onClick={addSelectionToSession}
+                    variant="ghost"
+                    size="sm"
+                    className="gap-x-2"
+                  >
+                    <FilePenIcon className="size-4" />
+                    Add Selection
+                  </Button>
+                ) : (
+                  // Otherwise, show the default "Edit" and "Chat" buttons
                   <>
-                    <Separator orientation="vertical" className="h-6" />
                     <Button
-                      onClick={handleAiButtonClick}
+                      onClick={startQuickEditSession}
                       variant="ghost"
                       size="sm"
                       className="gap-x-2"
                     >
-                      <MessageSquareIcon className="size-4" />
-                      Chat
+                      <FilePenIcon className="size-4" />
+                      Edit
                     </Button>
+                    {isAiSidebarOpen && (
+                      <>
+                        <Separator orientation="vertical" className="h-6" />
+                        <Button
+                          onClick={handleAiButtonClick}
+                          variant="ghost"
+                          size="sm"
+                          className="gap-x-2"
+                        >
+                          <MessageSquareIcon className="size-4" />
+                          Chat
+                        </Button>
+                      </>
+                    )}
                   </>
                 )}
               </div>

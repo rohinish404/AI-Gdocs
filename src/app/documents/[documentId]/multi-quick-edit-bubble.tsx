@@ -8,6 +8,7 @@ import {
   XIcon,
   ChevronDownIcon,
   ChevronUpIcon,
+  BrainCircuitIcon, // Added for visual flair
 } from "lucide-react";
 import { type Editor as EditorClass } from "@tiptap/react";
 import { Button } from "@/components/ui/button";
@@ -62,7 +63,6 @@ export const MultiQuickEditBubble = ({
 
     setIsLoading(true);
     try {
-      // Process each selection individually to get personalized AI responses
       const results = await Promise.all(
         selections.map(async (selection) => {
           const result = await generate({
@@ -73,30 +73,21 @@ export const MultiQuickEditBubble = ({
         }),
       );
 
-      // Sort results by position from end to beginning to avoid range shift issues
       const sortedResults = results.sort(
         (a, b) => b.selection.range.from - a.selection.range.from,
       );
 
-      // Create a single transaction to apply all changes at once
       const tr = editor.state.tr;
       let hasErrors = false;
 
-      // Apply changes from end to beginning to maintain position integrity
       for (const { selection, result } of sortedResults) {
         if (result && result.content) {
-          // Calculate the position for this suggestion node
           const { from, to } = selection.range;
-
-          // Delete the original content
           tr.delete(from, to);
-
-          // Insert the suggestion node at the same position
           const suggestionNode = editor.schema.nodes.suggestionNode.create({
             originalContent: selection.contextText,
             suggestedContent: result.content,
           });
-
           tr.insert(from, suggestionNode);
         } else {
           hasErrors = true;
@@ -107,15 +98,12 @@ export const MultiQuickEditBubble = ({
         }
       }
 
-      // Apply the transaction if there are any changes
       if (!tr.steps.length && hasErrors) {
         toast.error(
           "All selections failed to process. Check console for details.",
         );
       } else {
-        // Dispatch the transaction
         editor.view.dispatch(tr);
-
         if (hasErrors) {
           toast.error(
             "Some selections failed to process. Check console for details.",
@@ -140,13 +128,18 @@ export const MultiQuickEditBubble = ({
 
   return (
     <div className="rounded-lg border bg-popover text-popover-foreground shadow-md min-w-[600px]">
-      {/* Header */}
+      {/* Header - MODIFIED */}
       <div className="flex items-center justify-between p-2 border-b">
         <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">
-            Text selections ({selections.length})
+          <BrainCircuitIcon className="h-5 w-5 text-primary" />
+          <span className="font-semibold text-sm">
+            AI Edit ({selections.length})
           </span>
         </div>
+        {/* ADDED: A clear close button to end the session */}
+        <Button onClick={onClose} variant="ghost" size="sm" className="h-7">
+          Done
+        </Button>
       </div>
 
       {/* Individual collapsible selections */}
@@ -221,7 +214,7 @@ export const MultiQuickEditBubble = ({
         <Input
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
-          placeholder="e.g., 'Fix spelling'"
+          placeholder="e.g., 'Fix spelling and grammar'"
           className="h-15 p-2 border-none bg-transparent focus-visible:ring-0"
           autoFocus
           disabled={isLoading}
