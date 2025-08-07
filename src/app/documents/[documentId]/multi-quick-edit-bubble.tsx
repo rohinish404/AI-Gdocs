@@ -14,6 +14,8 @@ import { type Editor as EditorClass } from "@tiptap/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { api } from "../../../../convex/_generated/api";
+import { ModelSelector } from "@/components/model-selector";
+import { useModelStore } from "@/store/use-model-store";
 
 interface QuickEditSelection {
   id: string;
@@ -36,6 +38,7 @@ export const MultiQuickEditBubble = ({
   onRemoveSelection,
 }: MultiQuickEditBubbleProps) => {
   const generate = useAction(api.ai.generate);
+  const { selectedModel } = useModelStore();
   const [prompt, setPrompt] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [expandedSelections, setExpandedSelections] = useState<Set<string>>(
@@ -68,6 +71,7 @@ export const MultiQuickEditBubble = ({
           const result = await generate({
             prompt: prompt.trim(),
             contextText: selection.contextText,
+            model: selectedModel,
           });
           return { selection, result };
         }),
@@ -136,10 +140,13 @@ export const MultiQuickEditBubble = ({
             AI Edit ({selections.length})
           </span>
         </div>
-        {/* ADDED: A clear close button to end the session */}
-        <Button onClick={onClose} variant="ghost" size="sm" className="h-7">
-          Done
-        </Button>
+        <div className="flex items-center gap-2">
+          <ModelSelector variant="ghost" size="sm" />
+          {/* ADDED: A clear close button to end the session */}
+          <Button onClick={onClose} variant="ghost" size="sm" className="h-7">
+            Done
+          </Button>
+        </div>
       </div>
 
       {/* Individual collapsible selections */}

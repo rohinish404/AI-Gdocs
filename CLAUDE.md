@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a Google Docs clone called "Gdocs AI" built with Next.js 15, React 19, TypeScript, and Convex for the backend. The application features rich text editing using TipTap, AI-powered writing assistance, and real-time document collaboration.
+This is a Google Docs clone called "Docs0" built with Next.js 15, React 19, TypeScript, and Convex for the backend. The application features rich text editing using TipTap, AI-powered writing assistance, and real-time document collaboration.
 
 ## Key Architecture Components
 

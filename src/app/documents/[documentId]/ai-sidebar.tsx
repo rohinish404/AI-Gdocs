@@ -5,15 +5,18 @@ import { toast } from "sonner";
 import { LoaderIcon, SparklesIcon } from "lucide-react";
 import { useAiSidebarStore } from "@/store/use-aisidebar-store";
 import { useEditorStore } from "@/store/use-editor-store";
+import { useModelStore } from "@/store/use-model-store";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "../../../../convex/_generated/api";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { ModelSelector } from "@/components/model-selector";
 
 export const AiSidebar = () => {
   const { contextText, selectionRange, clearContext } = useAiSidebarStore();
   const { editor } = useEditorStore();
+  const { selectedModel } = useModelStore();
   const generate = useAction(api.ai.generate);
 
   const [prompt, setPrompt] = useState("");
@@ -40,6 +43,7 @@ export const AiSidebar = () => {
       const result = await generate({
         prompt: prompt.trim(),
         contextText: contextText,
+        model: selectedModel,
       });
 
       if (result && result.content && result.explanation) {
@@ -79,10 +83,13 @@ export const AiSidebar = () => {
   return (
     <div className="p-0 flex flex-col h-full bg-background">
       <div className="p-4 border-b flex-shrink-0">
-        <h2 className="flex items-center gap-x-2 font-semibold">
-          <SparklesIcon className="size-5 text-primary" />
-          AI Assistant
-        </h2>
+        <div className="flex items-center justify-between">
+          <h2 className="flex items-center gap-x-2 font-semibold">
+            <SparklesIcon className="size-5 text-primary" />
+            AI Assistant
+          </h2>
+          <ModelSelector />
+        </div>
       </div>
 
       <ScrollArea className="flex-1 h-0">

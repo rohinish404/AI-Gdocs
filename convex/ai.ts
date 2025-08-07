@@ -1,19 +1,46 @@
 import { action } from "./_generated/server";
 import { v } from "convex/values";
-import OpenAI from "openai";
-import { api } from "./_generated/api";
+import { generateObject } from "ai";
+import { openai } from "@ai-sdk/openai";
+import { anthropic } from "@ai-sdk/anthropic";
+import { google } from "@ai-sdk/google";
+import { groq } from "@ai-sdk/groq";
+import { z } from "zod";
 
-const openai = new OpenAI({
-  apiKey: process.env.GROQ_API_KEY,
-  baseURL: "https://api.groq.com/openai/v1",
+// Response schema
+const responseSchema = z.object({
+  content: z.string(),
+  explanation: z.string(),
 });
+
+// Provider configurations
+const getProvider = (model: string) => {
+  if (model.startsWith("gpt-") || model.includes("openai")) {
+    return openai(model);
+  }
+
+  if (model.startsWith("claude-")) {
+    return anthropic(model);
+  }
+
+  if (model.startsWith("gemini-")) {
+    return google(model);
+  }
+
+  // For Groq models (including kimi), use groq provider
+  return groq(model);
+};
 
 export const generate = action({
   args: {
     prompt: v.string(),
     contextText: v.string(),
+    model: v.optional(v.string()),
   },
-  handler: async (_ctx, { prompt, contextText }) => {
+  handler: async (
+    _ctx,
+    { prompt, contextText, model = "moonshotai/kimi-k2-instruct" },
+  ) => {
     const userMessage = `
 User Prompt: "${prompt}"
 
@@ -41,9 +68,11 @@ If the user prompt is "make this bold" and the context is "<p>Hello World</p>", 
 }
 `;
 
-    const response = await openai.chat.completions.create({
-      model: "moonshotai/kimi-k2-instruct",
-      response_format: { type: "json_object" },
+    const provider = getProvider(model);
+
+    const { object } = await generateObject({
+      model: provider,
+      schema: responseSchema,
       messages: [
         {
           role: "system",
@@ -56,24 +85,6 @@ If the user prompt is "make this bold" and the context is "<p>Hello World</p>", 
       ],
     });
 
-    const responseContent = response.choices[0].message.content;
-
-    if (!responseContent) {
-      throw new Error("No response from AI");
-    }
-
-    try {
-      const parsed = JSON.parse(responseContent);
-      if (
-        typeof parsed.content !== "string" ||
-        typeof parsed.explanation !== "string"
-      ) {
-        throw new Error("AI response is not in the expected format.");
-      }
-      return parsed; // Return the parsed object
-    } catch (e) {
-      console.error("Failed to parse AI response:", e);
-      throw new Error("AI returned invalid JSON.");
-    }
+    return object;
   },
 });
