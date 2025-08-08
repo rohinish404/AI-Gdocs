@@ -44,6 +44,7 @@ import { RemoveDialog } from "@/components/remove-dialog";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { UserButton } from "@clerk/nextjs";
 import { useSavingStore } from "@/store/use-saving-store";
+import { convertToDocx } from "@/lib/docx-export";
 
 interface NavbarProps {
   data: Doc<"documents">;
@@ -110,6 +111,26 @@ export const Navbar = ({ data }: NavbarProps) => {
     });
     onDownload(blob, `${data.title}.txt`);
   };
+
+  const onSaveDocx = async () => {
+    if (!editor) return;
+
+    try {
+      const content = editor.getJSON();
+      const docxBuffer = await convertToDocx({
+        title: data.title,
+        content,
+      });
+      const blob = new Blob([docxBuffer], {
+        type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      });
+      onDownload(blob, `${data.title}.docx`);
+      toast.success("Document exported to DOCX successfully");
+    } catch (error) {
+      console.error("Error exporting to DOCX:", error);
+      toast.error("Failed to export document to DOCX");
+    }
+  };
   return (
     <nav className="flex justify-between items-center">
       <div className="flex gap-2 items-center">
@@ -138,6 +159,10 @@ export const Navbar = ({ data }: NavbarProps) => {
                       <MenubarItem onClick={onSaveHTML}>
                         <GlobeIcon className="size-4 mr-2" />
                         HTML
+                      </MenubarItem>
+                      <MenubarItem onClick={onSaveDocx}>
+                        <FileTextIcon className="size-4 mr-2" />
+                        DOCX
                       </MenubarItem>
                       <MenubarItem onClick={() => window.print()}>
                         <BsFilePdf className="size-4 mr-2" />
