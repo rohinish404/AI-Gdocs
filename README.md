@@ -118,17 +118,14 @@ convex/
 
    Create `.env.local`:
    ```env
-   # Convex
-   CONVEX_DEPLOYMENT=your-convex-deployment
-   NEXT_PUBLIC_CONVEX_URL=https://your-convex-url
+   NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=
+   CLERK_SECRET_KEY=
+   NEXT_PUBLIC_CLERK_FRONTEND_API_URL=
+   NEXT_PUBLIC_CONVEX_URL=
 
-   # Clerk Authentication
-   NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your-clerk-publishable-key
-   CLERK_SECRET_KEY=your-clerk-secret-key
-   NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
-   NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
-   NEXT_PUBLIC_CLERK_SIGN_IN_FORCE_REDIRECT_URL=/
-   NEXT_PUBLIC_CLERK_SIGN_UP_FORCE_REDIRECT_URL=/
+  CONVEX_DEPLOYMENT=
+  GROQ_API_KEY=
+
    ```
 
    Configure Convex environment variables:
@@ -156,14 +153,6 @@ convex/
 
 **Clerk Authentication**: Set up your Clerk application with the appropriate redirect URLs and authentication methods.
 
-## Usage
-
-1. **Create Account**: Sign up using Clerk authentication
-2. **Choose Template**: Select from available document templates or start blank
-3. **Edit Document**: Use the rich text editor with full formatting capabilities
-4. **AI Assistance**: Select text and use the AI sidebar for content suggestions
-5. **Export**: Download documents as DOCX files when needed
-6. **Collaborate**: Share documents for real-time collaboration
 
 ## Development Commands
 
@@ -186,31 +175,3 @@ npx convex dev
 # Deploy Convex functions
 npx convex deploy
 ```
-
-## Highlights for Recruiters
-
-### Technical Excellence
-- **Modern Stack**: Next.js 15, React 19, TypeScript for cutting-edge development
-- **Real-time Architecture**: Convex backend enabling instant collaboration
-- **AI Integration**: Multi-provider AI system with context-aware suggestions
-- **Custom Extensions**: Built custom TipTap extensions for enhanced functionality
-- **Type Safety**: Comprehensive TypeScript usage with generated types
-
-### Code Quality
-- **Component Architecture**: Well-structured, reusable components with shadcn/ui
-- **State Management**: Clean state architecture with Zustand
-- **Performance**: Optimized with Next.js 15 features and Turbopack
-- **Developer Experience**: Excellent DX with TypeScript, hot reload, and modern tooling
-
-### Features Complexity
-- **Document Processing**: DOCX import/export with format preservation
-- **Real-time Sync**: Complex state synchronization across multiple users
-- **AI Context Management**: Sophisticated context extraction and management
-- **Custom Editor**: Extended TipTap with custom nodes and functionality
-- **Multi-tenancy**: User isolation and document ownership
-
-### Production Ready
-- **Authentication**: Secure user management with Clerk
-- **Scalable Backend**: Serverless architecture with Convex
-- **Error Handling**: Comprehensive error boundaries and user feedback
-- **Responsive Design**: Mobile-friendly interface with Tailwind CSS
