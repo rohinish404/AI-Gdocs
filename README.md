@@ -1,8 +1,12 @@
-# Docs0 - Google Docs Clone with AI
+# Docs0 - Cursor for Google Docs
 
 <!-- Demo section - placeholder for video/gif -->
 ## Demo
-*Demo video/screenshots coming soon*
+
+
+https://github.com/user-attachments/assets/e0fa3fe5-1721-4829-a8d2-86279c86f515
+
+
 
 ---
 
@@ -12,7 +16,6 @@ A powerful, feature-rich Google Docs clone built with modern web technologies. D
 
 ### Core Functionality
 - **Rich Text Editor**: Full-featured document editing with TipTap/ProseMirror
-- **Real-time Collaboration**: Live document synchronization across users
 - **AI Writing Assistant**: Cursor-like AI sidebar for content generation and editing
 - **Document Templates**: Pre-built templates for various document types
 - **DOCX Import/Export**: Upload and download Microsoft Word documents
